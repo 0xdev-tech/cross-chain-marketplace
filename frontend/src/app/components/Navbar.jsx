@@ -1,6 +1,6 @@
 "use client";
 
-import { useContext, useState } from "react";
+import { useContext, useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { WalletContext } from "@/context/wallet";
 import { BrowserProvider } from "ethers";
@@ -23,8 +23,34 @@ import {
   LogOut,
   ChevronRight,
   ArrowUpRight,
-  Network
+  Network,
+  Sparkles
 } from "lucide-react";
+
+// Add this new component for the kite icon
+const KiteIcon = () => (
+  <svg
+    width="24"
+    height="24"
+    viewBox="0 0 24 24"
+    fill="none"
+    xmlns="http://www.w3.org/2000/svg"
+    className="mr-2"
+  >
+    <path
+      d="M12 2L2 12L12 22L22 12L12 2Z"
+      fill="url(#gradient)"
+      stroke="url(#gradient)"
+      strokeWidth="1"
+    />
+    <defs>
+      <linearGradient id="gradient" x1="2" y1="2" x2="22" y2="22" gradientUnits="userSpaceOnUse">
+        <stop stopColor="#EC4899" />
+        <stop offset="1" stopColor="#8B5CF6" />
+      </linearGradient>
+    </defs>
+  </svg>
+);
 
 const Navbar = ({ className }) => {
   const {
@@ -39,6 +65,20 @@ const Navbar = ({ className }) => {
 
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const dropdownRef = useRef(null);
+
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+        setIsDropdownOpen(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, []);
 
   const connectWallet = async () => {
     if (!window.ethereum) {
@@ -55,11 +95,14 @@ const Navbar = ({ className }) => {
       setUserAddress(accounts[0]);
       toast.success("MetaMask Wallet Connected");
       const network = await provider.getNetwork();
+      console.log("Network", network);
       const chainID = network.chainId;
-      const sepoliaNetworkId = 11155111;
+      console.log("Chain ID", chainID);
+      const sepoliaNetworkId = 11155111n;
+      console.log("Sepolia Network ID", sepoliaNetworkId);
 
       if (chainID !== sepoliaNetworkId) {
-        toast.warning("Switch to Polygon network to continue");
+        toast.warning("Switch to Sepolia network to continue");
       }
     } catch (error) {
       console.log("Connection error", error);
@@ -75,7 +118,7 @@ const Navbar = ({ className }) => {
   };
 
   return (
-    <div className={`sticky top-0 z-50 w-full bg-black/40 backdrop-blur-md border-b border-zinc-800/30 ${className}`}>
+    <div className={`sticky top-0 z-50 w-full bg-black/20 backdrop-blur-md border-b border-zinc-800/30 ${className}`}>
       <div className="flex justify-between items-center max-w-7xl mx-auto px-4 py-2 sm:px-6 lg:px-8">
         {/* Left Side - Hamburger Menu and Logo */}
         <div className="flex items-center space-x-6">
@@ -93,8 +136,9 @@ const Navbar = ({ className }) => {
           </button>
 
           {/* Logo */}
-          <span className="text-base font-bold text-slate-300 font-mono tracking-wider">
-            <FlipWords words={["METABAZAAR", "METABAZAAR"]} duration={1} />
+          <span className="hidden md:flex items-center text-lg font-bold text-white font-mono tracking-wider">
+            <KiteIcon />
+            <FlipWords className="ml-2 text-white" words={["METABAZAAR", "METABAZAAR"]} duration={1} />
           </span>
 
           {/* Desktop Navigation Links */}
@@ -144,12 +188,13 @@ const Navbar = ({ className }) => {
                 type="button"
                 className="relative flex items-center space-x-2 px-3 py-1.5 bg-zinc-900/30 hover:bg-zinc-900/50 text-pink-400 border border-pink-500/20 rounded-lg transition-colors font-mono text-sm"
                 onClick={toggleDropdown}
+                ref={dropdownRef}
               >
                 <Wallet className="w-4 h-4" />
                 <span className="font-medium">{truncateAddress(userAddress)}</span>
                 <ChevronDown className="w-4 h-4" />
                 {isDropdownOpen && (
-                  <div className="absolute right-0 mt-2 w-56 bg-zinc-900/80 backdrop-blur-lg border border-zinc-800/50 rounded-lg shadow-lg py-2">
+                  <div className="absolute right-0 top-full mt-2 w-56 bg-zinc-900/95 backdrop-blur-xl border border-zinc-800/50 rounded-lg shadow-xl py-2 z-50">
                     <ul className="text-sm font-mono">
                       <li>
                         <Link href="/leaderboard" className="flex items-center space-x-2 px-4 py-2 text-slate-300 hover:bg-zinc-800/50 hover:text-pink-400 transition-colors">
@@ -169,9 +214,26 @@ const Navbar = ({ className }) => {
                           <span>DISCUSSIONS</span>
                         </Link>
                       </li>
+                      <li>
+                        <a 
+                          href="mailto:rohitshahi581@gmail.com"
+                          className="flex items-center space-x-2 px-4 py-2 text-slate-300 hover:bg-zinc-800/50 hover:text-pink-400 transition-colors"
+                        >
+                          <MessageSquare className="w-4 h-4" />
+                          <span>CONTACT</span>
+                        </a>
+                      </li>
                       <li className="border-t border-zinc-800/50 my-2" />
                       <li>
-                        <button className="flex items-center space-x-2 w-full px-4 py-2 text-slate-300 hover:bg-zinc-800/50 hover:text-red-400 transition-colors">
+                        <button 
+                          onClick={() => {
+                            setIsConnected(false);
+                            setUserAddress("");
+                            setSigner(null);
+                            setIsDropdownOpen(false);
+                          }}
+                          className="flex items-center space-x-2 w-full px-4 py-2 text-slate-300 hover:bg-zinc-800/50 hover:text-red-400 transition-colors"
+                        >
                           <LogOut className="w-4 h-4" />
                           <span>DISCONNECT</span>
                         </button>
@@ -261,7 +323,7 @@ const Navbar = ({ className }) => {
 
                 {/* Dropdown Menu for Wallet Address */}
                 {isDropdownOpen && (
-                  <div className="mt-1 ml-4 space-y-1">
+                  <div className="mt-1 ml-4 space-y-1 bg-zinc-900/95 backdrop-blur-xl border border-zinc-800/50 rounded-lg shadow-xl py-2">
                     <Link href="/leaderboard" className="flex items-center space-x-3 px-3 py-2 text-sm font-mono text-slate-300 hover:bg-zinc-800/50 hover:text-pink-400 rounded-lg transition-colors">
                       <BarChart2 className="w-5 h-5" />
                       <span>LEADERBOARD</span>
@@ -274,7 +336,22 @@ const Navbar = ({ className }) => {
                       <MessageSquare className="w-5 h-5" />
                       <span>DISCUSSIONS</span>
                     </Link>
-                    <button className="flex items-center space-x-3 w-full px-3 py-2 text-sm font-mono text-slate-300 hover:bg-zinc-800/50 hover:text-red-400 rounded-lg transition-colors">
+                    <a 
+                      href="mailto:rohitshahi581@gmail.com"
+                      className="flex items-center space-x-3 px-3 py-2 text-sm font-mono text-slate-300 hover:bg-zinc-800/50 hover:text-pink-400 rounded-lg transition-colors"
+                    >
+                      <MessageSquare className="w-5 h-5" />
+                      <span>CONTACT</span>
+                    </a>
+                    <button 
+                      onClick={() => {
+                        setIsConnected(false);
+                        setUserAddress("");
+                        setSigner(null);
+                        setIsDropdownOpen(false);
+                      }}
+                      className="flex items-center space-x-3 w-full px-3 py-2 text-sm font-mono text-slate-300 hover:bg-zinc-800/50 hover:text-red-400 rounded-lg transition-colors"
+                    >
                       <LogOut className="w-5 h-5" />
                       <span>DISCONNECT</span>
                     </button>
